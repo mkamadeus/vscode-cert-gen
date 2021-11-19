@@ -3,22 +3,100 @@ package main
 import (
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/alexflint/go-arg"
 	"github.com/mkamadeus/vscode-cert-gen/rsa"
 )
 
+type PublicKey struct {
+	N *big.Int
+	E *big.Int
+}
+
+func (key *PublicKey) UnmarshalText(b []byte) error {
+	s := string(b)
+	k := strings.Split(s, ",")
+	if len(k) != 2 {
+		return fmt.Errorf("expected 2 comma-separated values, found %d values", len(k))
+	}
+	key.N = big.NewInt(0)
+	key.E = big.NewInt(0)
+
+	_, success1 := key.N.SetString(k[0], 10)
+	_, success2 := key.E.SetString(k[1], 10)
+
+	if !success1 || !success2 {
+		return fmt.Errorf("failed to parse key")
+	}
+	return nil
+}
+
+type PrivateKey struct {
+	N *big.Int
+	D *big.Int
+}
+
+func (key *PrivateKey) UnmarshalText(b []byte) error {
+	s := string(b)
+	k := strings.Split(s, ",")
+	if len(k) != 2 {
+		return fmt.Errorf("expected 2 comma-separated values, found %d values", len(k))
+	}
+	key.N = big.NewInt(0)
+	key.D = big.NewInt(0)
+
+	_, success1 := key.N.SetString(k[0], 10)
+	_, success2 := key.D.SetString(k[1], 10)
+	if !success1 || !success2 {
+		return fmt.Errorf("failed to parse key")
+	}
+	return nil
+}
+
 type CertGenArgs struct {
-	Message string `arg:"-m,--message,required"`
+	IsSign     bool       `arg:"--sign" help:"for signing a certificate"`
+	IsVerify   bool       `arg:"--verify" help:"for verifying a certificate"`
+	Message    string     `arg:"-m,--message,required" help:"message for signing or verification"`
+	Signature  string     `arg:"-s,--signature" help:"message signature (for --verify)"`
+	PublicKey  PublicKey  `arg:"--public" help:"public key: n,e (for --verify)"`
+	PrivateKey PrivateKey `arg:"--private" help:"private key: n,d (for --sign)"`
+}
+
+func (CertGenArgs) Version() string {
+	return "certgen-cli v0.0.0 by @mkamadeus & COSKIozer"
+}
+
+func ParseArgs() (*CertGenArgs, error) {
+	args := &CertGenArgs{}
+	arg.MustParse(args)
+
+	if !args.IsSign && !args.IsVerify {
+		return nil, fmt.Errorf("--sign or --verify must be supplied")
+	}
+	if args.IsSign && args.IsVerify {
+		return nil, fmt.Errorf("--sign and --verify must be mutually exclusive")
+	}
+	if args.IsSign && (args.PrivateKey.N == nil || args.PrivateKey.D == nil) {
+		return nil, fmt.Errorf("--sign must have --private key supplied")
+	}
+	if args.IsVerify && (args.PublicKey.N == nil || args.PublicKey.E == nil || args.Signature == "") {
+		return nil, fmt.Errorf("--verify must have --public key supplied")
+	}
+	return args, nil
 }
 
 func main() {
-	args := CertGenArgs{}
-	arg.MustParse(&args)
+	args, err := ParseArgs()
+	if err != nil {
+		panic(err)
+	}
 
-	sign := rsa.Sign([]byte(args.Message), *big.NewInt(3), *big.NewInt(33))
-	fmt.Println(sign)
-	verify := rsa.Verify([]byte(args.Message), sign, *big.NewInt(7), *big.NewInt(33))
-	fmt.Println(verify)
-	// fmt.Println(utils.Uint32ArrayToBigint([]uint32{0xFFFFEEEE, 0xFFFFDDDD, 0xFFFFAAAA}))
+	if args.IsSign {
+		sign := rsa.Sign([]byte(args.Message), *args.PrivateKey.D, *args.PrivateKey.N)
+		fmt.Println(sign)
+	} else if args.IsVerify {
+		verify := rsa.Verify([]byte(args.Message), []byte(args.Signature), *args.PublicKey.E, *args.PublicKey.N)
+		fmt.Println(verify)
+	}
 }
