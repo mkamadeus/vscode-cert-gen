@@ -2,7 +2,7 @@ package utils
 
 import "math/big"
 
-func isPrime(x big.Int) bool {
+func IsPrime(x big.Int) bool {
 	if x.Cmp(big.NewInt(2)) == -1 {
 		return false
 	} else if x.Cmp(big.NewInt(2)) == 0 {
@@ -17,4 +17,12 @@ func isPrime(x big.Int) bool {
 		}
 	}
 	return true
+}
+
+func GCD(a big.Int, b big.Int) big.Int {
+	if b.Cmp(big.NewInt(0)) == 0 {
+		return a
+	}
+	c := big.NewInt(0)
+	return GCD(b, *c.Mod(&a, &b))
 }

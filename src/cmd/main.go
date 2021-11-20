@@ -56,11 +56,11 @@ func (key *PrivateKey) UnmarshalText(b []byte) error {
 
 type CertGenArgs struct {
 	IsSign     bool       `arg:"--sign" help:"for signing a certificate"`
-	IsVerify   bool       `arg:"--verify" help:"for verifying a certificate"`
-	Message    string     `arg:"-m,--message,required" help:"message for signing or verification"`
-	Signature  string     `arg:"-s,--signature" help:"message signature (for --verify)"`
-	PublicKey  PublicKey  `arg:"--public" help:"public key: n,e (for --verify)"`
 	PrivateKey PrivateKey `arg:"--private" help:"private key: n,d (for --sign)"`
+	IsVerify   bool       `arg:"--verify" help:"for verifying a certificate"`
+	PublicKey  PublicKey  `arg:"--public" help:"public key: n,e (for --verify)"`
+	Signature  string     `arg:"-s,--signature" help:"message signature (for --verify)"`
+	Message    string     `arg:"-m,--message,required" help:"message for signing or verification"`
 }
 
 func (CertGenArgs) Version() string {
@@ -93,10 +93,10 @@ func main() {
 	}
 
 	if args.IsSign {
-		sign := rsa.Sign([]byte(args.Message), *args.PrivateKey.D, *args.PrivateKey.N)
-		fmt.Println(sign)
+		signature := rsa.Sign([]byte(args.Message), *args.PrivateKey.D, *args.PrivateKey.N)
+		fmt.Println(signature)
 	} else if args.IsVerify {
-		verify := rsa.Verify([]byte(args.Message), []byte(args.Signature), *args.PublicKey.E, *args.PublicKey.N)
+		verify := rsa.Verify([]byte(args.Message), args.Signature, *args.PublicKey.E, *args.PublicKey.N)
 		fmt.Println(verify)
 	}
 }
