@@ -30,25 +30,6 @@
                 "command": "cert-gen.keygen",
                 "title": "Cert Gen: Generate New Keys"
             }
-        ],
-        "configuration": [
-            {
-                "title": "CertGen Keys",
-                "properties": {
-                    "certgen.key.n": {
-                        "type": "string",
-                        "description": "The N value of both public and private keys"
-                    },
-                    "certgen.key.e": {
-                        "type": "string",
-                        "description": "The E value of the public key"
-                    },
-                    "certgen.key.d": {
-                        "type": "string",
-                        "description": "The D value of the private key"
-                    }
-                }
-            }
         ]
     },
     "scripts": {

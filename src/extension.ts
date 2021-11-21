@@ -113,7 +113,7 @@ function sign(context: vscode.ExtensionContext) {
     runCertgen(
       { "sign": null, "private": `${n},${d}`, "message": text },
       (stdout) => {
-        let signature = parseInt(stdout).toString(16).toUpperCase();
+        let signature = BigInt(stdout).toString(16).toUpperCase();
         
         vscode.window.showInformationMessage(`Signature: ${signature}`);
 
@@ -154,7 +154,7 @@ function validate(context: vscode.ExtensionContext) {
     }
 
     // Convert to decimal
-    let signature = parseInt(signString, 16);
+    let signature = BigInt('0x' + signString);
 
     // Get text
     let text = removeSignature(docText).trim();
@@ -179,7 +179,7 @@ function keygen(context: vscode.ExtensionContext) {
   // Change this for different defaults
   // Typical e values: 3, 5, 17, 257, 65537
   // Typical k values: 1024, 2048, 3072, 4096, ...
-  const k = 64, e = 65537n;
+  const k = 1024, e = 65537n;
 
   do {
     var p = utils.genPrime(k >> 5); // div 8 (bytes) div 2
@@ -193,7 +193,7 @@ function keygen(context: vscode.ExtensionContext) {
   let totient = (p - 1n) * (q - 1n);
   let d = utils.modInv(e, totient);
 
-  vscode.window.showInformationMessage(`Certificate keys updated!\nn: ${n.toString(16)}\ne: ${e.toString(16)}\nd: ${d.toString(16)}`);
+  vscode.window.showInformationMessage(`Certificate keys updated!\nn: ${n.toString(10)}\ne: ${e.toString(16)}\nd: ${d.toString(10)}`);
   
   var store = context.globalState;
   store.update("certgen.key.n", n.toString());
