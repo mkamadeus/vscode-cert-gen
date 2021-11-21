@@ -83,6 +83,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.commands.registerCommand("cert-gen.sign", () => sign(context)));
   context.subscriptions.push(vscode.commands.registerCommand("cert-gen.validate", () => validate(context)));
   context.subscriptions.push(vscode.commands.registerCommand("cert-gen.keygen", () => keygen(context)));
+  context.subscriptions.push(vscode.commands.registerCommand("cert-gen.getkey", () => getkey(context)));
 }
 
 export function deactivate() { }
@@ -125,7 +126,7 @@ function sign(context: vscode.ExtensionContext) {
   }
 }
 
-function validate(context: vscode.ExtensionContext) {
+async function validate(context: vscode.ExtensionContext) {
   // Make sure a text editor is open
   const editor = vscode.window.activeTextEditor;
   if (editor) {
@@ -133,23 +134,37 @@ function validate(context: vscode.ExtensionContext) {
     let document = editor.document;
     const docText = document.getText();
 
-    // Get keys
-    var store = context.globalState;
-    let n = store.get("certgen.key.n", null);
-    let e = store.get("certgen.key.e", null);
-
-    // Fail if keys are missing
-    if (!n || !e) {
-      vscode.window.showInformationMessage("There are no keys saved, please generate keys first");
-      return;
-    }
-
     // Get signature
     let signString = readSignature(docText);
 
     // Fail if signature is missing
     if (!signString) {
       vscode.window.showInformationMessage("No signature is detected at the end of this file");
+      return;
+    }
+
+    // Get keys
+    let n = await vscode.window.showInputBox({
+      title: "Enter the n value of this certificate's public key",
+      placeHolder: "This is typically a hexadecimal string"
+    });
+
+    // Fail if keys are missing
+    if (!n) {
+      vscode.window.showInformationMessage("You need to enter the key first!");
+      return;
+    }
+
+    // Get keys
+    let e = await vscode.window.showInputBox({
+      title: "Enter the n value of this certificate's public key",
+      value: "65537",
+      placeHolder: "This is typically an integer"
+    });
+
+    // Fail if keys are missing
+    if (!e) {
+      vscode.window.showInformationMessage("You need to enter the key first!");
       return;
     }
 
@@ -161,7 +176,7 @@ function validate(context: vscode.ExtensionContext) {
 
     // Validate signature
     runCertgen(
-      { "verify": null, "public": `${n},${e}`, "signature": signature, "message": text },
+      { "verify": null, "public": `${BigInt('0x' + n).toString()},${e}`, "signature": signature, "message": text },
       (stdout) => {
         if (stdout.startsWith("true")) {
           vscode.window.showInformationMessage(`This document contains a VALID signature`);
@@ -193,11 +208,22 @@ function keygen(context: vscode.ExtensionContext) {
   let totient = (p - 1n) * (q - 1n);
   let d = utils.modInv(e, totient);
 
-  vscode.window.showInformationMessage(`Certificate keys updated!\nn: ${n.toString(10)}\ne: ${e.toString(16)}\nd: ${d.toString(10)}`);
+  vscode.window.showInformationMessage(`Certificate keys updated!\nn: ${n.toString(16)}\ne: ${e.toString(10)}\nd: ${d.toString(16)}`);
   
   var store = context.globalState;
   store.update("certgen.key.n", n.toString());
   store.update("certgen.key.e", e.toString());
   store.update("certgen.key.d", d.toString());
   store.setKeysForSync(["certgen.key.n", "certgen.key.e", "certgen.key.d"]);
+}
+
+function getkey(context: vscode.ExtensionContext) {
+  var store = context.globalState;
+  let n: any = store.get("certgen.key.n", null);
+  let e: any = store.get("certgen.key.e", null);
+  if (!n || !e) {
+    vscode.window.showInformationMessage('There are no keys saved in this device');
+    return;
+  }
+  vscode.window.showInformationMessage(`Your public key:\nn: ${BigInt(n).toString(16)}\ne: ${e}`);
 }

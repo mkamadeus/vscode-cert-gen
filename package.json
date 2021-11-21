@@ -13,7 +13,8 @@
     "activationEvents": [
         "onCommand:cert-gen.sign",
         "onCommand:cert-gen.validate",
-        "onCommand:cert-gen.keygen"
+        "onCommand:cert-gen.keygen",
+        "onCommand:cert-gen.getkey"
     ],
     "main": "./out/extension.js",
     "contributes": {
@@ -29,6 +30,10 @@
             {
                 "command": "cert-gen.keygen",
                 "title": "Cert Gen: Generate New Keys"
+            },
+            {
+                "command": "cert-gen.getkey",
+                "title": "Cert Gen: Get Saved Public Key"
             }
         ]
     },
