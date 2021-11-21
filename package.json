@@ -1,45 +1,70 @@
 {
-  "name": "cert-gen",
-	"displayName": "cert-gen",
-	"description": "Generates certificate of a text file (IF4020 2021)",
-	"version": "0.0.1",
-	"engines": {
-		"vscode": "^1.62.0"
-	},
-	"categories": [
-		"Other"
-	],
-	"activationEvents": [
-        "onCommand:cert-gen.helloWorld"
-	],
-	"main": "./out/extension.js",
-	"contributes": {
-		"commands": [
-			{
-				"command": "cert-gen.helloWorld",
-				"title": "Hello World"
-			}
-		]
-	},
-	"scripts": {
-		"vscode:prepublish": "yarn run compile",
-		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
-		"pretest": "yarn run compile && yarn run lint",
-		"lint": "eslint src --ext ts",
-		"test": "node ./out/test/runTest.js"
-	},
-	"devDependencies": {
-		"@types/vscode": "^1.62.0",
-		"@types/glob": "^7.1.4",
-		"@types/mocha": "^9.0.0",
-		"@types/node": "14.x",
-		"@typescript-eslint/eslint-plugin": "^5.1.0",
-		"@typescript-eslint/parser": "^5.1.0",
-		"eslint": "^8.1.0",
-		"glob": "^7.1.7",
-		"mocha": "^9.1.3",
-		"typescript": "^4.4.4",
-		"@vscode/test-electron": "^1.6.2"
-	}
+    "name": "cert-gen",
+    "displayName": "cert-gen",
+    "description": "Generates certificate of a text file (IF4020 2021)",
+    "version": "0.0.1",
+	"publisher": "mek",
+    "engines": {
+        "vscode": "^1.62.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onCommand:cert-gen.sign",
+        "onCommand:cert-gen.validate"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "cert-gen.sign",
+                "title": "Cert Gen: Sign Text Document"
+            },
+            {
+                "command": "cert-gen.validate",
+                "title": "Cert Gen: Validate Text Document Certificate"
+            }
+        ],
+        "configuration": [
+            {
+                "title": "CertGen Keys",
+                "properties": {
+                    "certgen.key.n": {
+                        "type": "integer",
+                        "description": "The N value of both public and private keys"
+                    },
+                    "certgen.key.e": {
+                        "type": "integer",
+                        "description": "The E value of the public key"
+                    },
+                    "certgen.key.d": {
+                        "type": "integer",
+                        "description": "The D value of the private key"
+                    }
+                }
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "yarn run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "yarn run compile && yarn run lint",
+        "lint": "eslint src --ext ts",
+        "test": "node ./out/test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.62.0",
+        "@types/glob": "^7.1.4",
+        "@types/mocha": "^9.0.0",
+        "@types/node": "14.x",
+        "@typescript-eslint/eslint-plugin": "^5.1.0",
+        "@typescript-eslint/parser": "^5.1.0",
+        "eslint": "^8.1.0",
+        "glob": "^7.1.7",
+        "mocha": "^9.1.3",
+        "typescript": "^4.4.4",
+        "@vscode/test-electron": "^1.6.2"
+    }
 }
