@@ -1,9 +1,9 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
-import * as fs from "fs";
+import * as path from "path";
 import * as child_process from "child_process";
-import path = require("path");
+import * as utils from "./utils";
 
 function runCertgen(args: any, callback: (stdout: string) => void): void {
   // Parse the args
@@ -78,21 +78,16 @@ function removeSignature(text: string): string {
   return text.replace(/\*\*\* Begin of digital signature \*\*\*\s*[a-fA-f0-9]+\s+\*\*\* End of digital signature \*\*\*\s*$/, "");
 }
 
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
-  console.log('Congratulations, your extension "cert-gen" is now active!');
 
-  context.subscriptions.push(vscode.commands.registerCommand("cert-gen.sign", sign));
-  context.subscriptions.push(vscode.commands.registerCommand("cert-gen.validate", validate));
+  context.subscriptions.push(vscode.commands.registerCommand("cert-gen.sign", () => sign(context)));
+  context.subscriptions.push(vscode.commands.registerCommand("cert-gen.validate", () => validate(context)));
+  context.subscriptions.push(vscode.commands.registerCommand("cert-gen.keygen", () => keygen(context)));
 }
 
-// this method is called when your extension is deactivated
 export function deactivate() { }
 
-function sign() {
+function sign(context: vscode.ExtensionContext) {
   // Make sure a text editor is open
   const editor = vscode.window.activeTextEditor;
   if (editor) {
@@ -101,11 +96,12 @@ function sign() {
     const docText = document.getText();
 
     // Get keys
-    let config = vscode.workspace.getConfiguration("");
-    let currVal = config.get("certgen.key", Object());
+    var store = context.globalState;
+    let n = store.get("certgen.key.n", null);
+    let d = store.get("certgen.key.d", null);
 
     // Fail if keys are missing
-    if (Object.keys(currVal).length !== 3) {
+    if (!n || !d) {
       vscode.window.showInformationMessage("There are no keys saved, please generate keys first");
       return;
     }
@@ -115,7 +111,7 @@ function sign() {
 
     // Generate & write signature
     runCertgen(
-      { "sign": null, "private": `${currVal.n},${currVal.d}`, "message": text },
+      { "sign": null, "private": `${n},${d}`, "message": text },
       (stdout) => {
         let signature = parseInt(stdout).toString(16).toUpperCase();
         
@@ -129,7 +125,7 @@ function sign() {
   }
 }
 
-function validate() {
+function validate(context: vscode.ExtensionContext) {
   // Make sure a text editor is open
   const editor = vscode.window.activeTextEditor;
   if (editor) {
@@ -138,11 +134,12 @@ function validate() {
     const docText = document.getText();
 
     // Get keys
-    let config = vscode.workspace.getConfiguration("");
-    let currVal = config.get("certgen.key", Object());
+    var store = context.globalState;
+    let n = store.get("certgen.key.n", null);
+    let e = store.get("certgen.key.e", null);
 
     // Fail if keys are missing
-    if (Object.keys(currVal).length !== 3) {
+    if (!n || !e) {
       vscode.window.showInformationMessage("There are no keys saved, please generate keys first");
       return;
     }
@@ -164,7 +161,7 @@ function validate() {
 
     // Validate signature
     runCertgen(
-      { "verify": null, "public": `${currVal.n},${currVal.e}`, "signature": signature, "message": text },
+      { "verify": null, "public": `${n},${e}`, "signature": signature, "message": text },
       (stdout) => {
         if (stdout.startsWith("true")) {
           vscode.window.showInformationMessage(`This document contains a VALID signature`);
@@ -176,4 +173,31 @@ function validate() {
   } else {
     vscode.window.showInformationMessage("No text editor active");
   }
+}
+
+function keygen(context: vscode.ExtensionContext) {
+  // Change this for different defaults
+  // Typical e values: 3, 5, 17, 257, 65537
+  // Typical k values: 1024, 2048, 3072, 4096, ...
+  const k = 64, e = 65537n;
+
+  do {
+    var p = utils.genPrime(k >> 5); // div 8 (bytes) div 2
+  } while (p % e === 1n);
+  
+  do {
+      var q = utils.genPrime(k >> 5); // div 8 (bytes) div 2
+  } while (q % e === 1n && p !== q);
+  
+  let n = p * q;
+  let totient = (p - 1n) * (q - 1n);
+  let d = utils.modInv(e, totient);
+
+  vscode.window.showInformationMessage(`Certificate keys updated!\nn: ${n.toString(16)}\ne: ${e.toString(16)}\nd: ${d.toString(16)}`);
+  
+  var store = context.globalState;
+  store.update("certgen.key.n", n.toString());
+  store.update("certgen.key.e", e.toString());
+  store.update("certgen.key.d", d.toString());
+  store.setKeysForSync(["certgen.key.n", "certgen.key.e", "certgen.key.d"]);
 }
